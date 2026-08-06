@@ -1,9 +1,12 @@
-import reader
 from pathlib import Path
+import errors
+from reader import SnapshotReader
 
-if __name__ == "__main__":
-    snaps = list(reader.read_snapshots(Path("data/game_state.json")))
-    print("снимков:", len(snaps))
-    print("спрайтов в первом:", len(snaps[0].sprites))
-    print(snaps[0].sprites[0])
-print("сумма спрайтов:", sum(len(s.sprites) for s in snaps))
+reader = SnapshotReader(Path("data/game_state.json"))
+try:
+    for snap in reader:
+        print(f"ok: кадр {snap.frame}, спрайтов {len(snap.sprites)}")
+except errors.FatalLogError as e:
+    print(f"ОСТАНОВКА: {e}")
+print()
+print(reader.stats)

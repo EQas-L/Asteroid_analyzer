@@ -1,63 +1,101 @@
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 
+import errors
 from models import Size, Snapshot, Sprite, SpriteType, Vec2
 
 
-def read_lines(path: Path) -> Iterator[str]:
-    """Строки файла, без пустых и без завершающего перевода строки."""
-    with open(path, 'r') as f:
-        for line in f:
-            line  = line.strip()
+def read_lines(path: Path) -> Iterator[tuple[str, int]]:
+    """Непустые строки файла вместе с их номерами."""
+    with open(path) as f:
+        for lineno, line in enumerate(f, start=1):
+            line = line.strip()
             if line:
-                yield line
+                yield line, lineno
 
 
-def parse_json(lines: Iterable[str]) -> Iterator[dict]:
-    """Строки → разобранные словари."""
-    for line in lines:
-        yield json.loads(line)
+@dataclass(slots=True)
+class ReadStats:
+    lines_total: int = 0
+    snapshots_ok: int = 0
+    malformed_json: int = 0
+    incomplete_snapshots: int = 0
+    unknown_sprite_types: int = 0
 
 
-def to_snapshots(records: Iterable[dict]) -> Iterator[Snapshot]:
-    """Словари → объекты Snapshot."""
-    skipped = 0
-    for record in records:
-        sprites: list[Sprite] = []
-        for sprite in record['updatable']['sprites']:
-            try:
-                sprite_type = SpriteType(sprite["type"])
-            except ValueError:
-                skipped += 1
-                continue
+class SnapshotReader:
+    def __init__(self, path: Path, supported_version: int = 2) -> None:
+        self.path = path
+        self.supported_version = supported_version
+        self.stats = ReadStats()
 
-            if sprite_type is SpriteType.ASTEROID_FIELD:
-                continue
-            sprites.append(Sprite(  
-                id=sprite['id'],
-                type=sprite_type,
-                position=Vec2(sprite['pos'][0], sprite['pos'][1]),
-                velocity=Vec2(sprite['vel'][0], sprite['vel'][1]),
-                radius=sprite['rad'],
-                rotation=sprite.get('rot')
-                ))
-        yield Snapshot(
-            v=record['v'],
-            timestamp=record['timestamp'],
-            elapsed_s=record['elapsed_s'],
-            frame=record['frame'],
-            screen=Size(record['screen_size'][0], record['screen_size'][1]),
-            sprites=tuple(sprites)
+    def _parse_sprite(self, raw: dict, lineno: int) -> Sprite | None:
+        """Один спрайт. None — если тип неизвестен или не нужен."""
+        try:
+            sprite_type = SpriteType(raw["type"])
+        except ValueError:
+            raise errors.UnknownSpriteTypeError(lineno, raw.get("type")) from None
+
+        if sprite_type is SpriteType.ASTEROID_FIELD:
+            return None
+
+        return Sprite(
+            id=raw["id"],
+            type=sprite_type,
+            position=Vec2(raw["pos"][0], raw["pos"][1]),
+            velocity=Vec2(raw["vel"][0], raw["vel"][1]),
+            radius=raw["rad"],
+            rotation=raw.get("rot"),
+        )
+
+    def _parse_snapshot(self, line: str, lineno: int) -> Snapshot:
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as e:
+            raise errors.MalformedLineError(lineno, str(e)) from e
+
+        try:
+            if record["v"] != self.supported_version:
+                raise errors.UnsupportedVersionError(
+                    lineno, record["v"], self.supported_version
+                )
+
+            sprites: list[Sprite] = []
+            for raw in record["updatable"]["sprites"]:
+                try:
+                    sprite = self._parse_sprite(raw, lineno)
+                except errors.UnknownSpriteTypeError as e:
+                    print(f"предупреждение: {e}")
+                    self.stats.unknown_sprite_types += 1
+                    continue
+                if sprite is not None:
+                    sprites.append(sprite)
+
+            return Snapshot(
+                v=record["v"],
+                timestamp=record["timestamp"],
+                elapsed_s=record["elapsed_s"],
+                frame=record["frame"],
+                screen=Size(record["screen_size"][0], record["screen_size"][1]),
+                sprites=tuple(sprites),
             )
+        except KeyError as e:
+            raise errors.IncompleteRecordError(lineno, e.args[0]) from e
 
-
-        
-
-def read_snapshots(path: Path) -> Iterator[Snapshot]:
-    return to_snapshots(parse_json(read_lines(path)))
-if __name__ == "__main__":
-    snaps = list(read_snapshots(Path("data/game_state.json")))
-    print("снимков:", len(snaps))
-    print("спрайтов в первом:", len(snaps[0].sprites))
-    print(snaps[0].sprites[0])
+    def __iter__(self) -> Iterator[Snapshot]:
+        for line, lineno in read_lines(self.path):
+            self.stats.lines_total += 1
+            try:
+                snapshot = self._parse_snapshot(line, lineno)
+            except errors.MalformedLineError as e:
+                print(f"пропуск: {e}")
+                self.stats.malformed_json += 1
+                continue
+            except errors.IncompleteRecordError as e:
+                print(f"пропуск: {e}")
+                self.stats.incomplete_snapshots += 1
+                continue
+            self.stats.snapshots_ok += 1
+            yield snapshot
