@@ -18,9 +18,58 @@ class Report:
     sprites_on_screen: list[int]
     sprites_appearance_by_type: dict[str, int]
     asteroids_destroyed: int
-    percent_shots_hit: float
-    objects_life_time: dict[int, int] # id -> life time in frames
-    survived: list[int]
+    shots_hit_fraction: float
+    objects_life_time: dict[int, tuple[int, SpriteType]] # id -> life time in frames
+    survived_asteroid: int
+    survived_shots: int
+    objects_life: dict[int, ObjectLife]
+
+    @property
+    def max_sprites(self) -> int:
+        if self.sprites_on_screen:
+            return max(self.sprites_on_screen)
+        else:
+            return 0
+
+    @property
+    def average_sprites(self) -> float:
+        if self.sprites_on_screen:
+            return round(sum(self.sprites_on_screen) / len(self.sprites_on_screen), 3)
+        else:
+            return 0
+
+    @property
+    def max_fraction(self) -> float:
+        if self.asteroid_area_fraction:
+            return round(max(self.asteroid_area_fraction), 3)
+        else:
+            return 0
+
+    @property
+    def average_fraction(self) -> float:
+        if self.asteroid_area_fraction:
+            return round(sum(self.asteroid_area_fraction) / len(self.asteroid_area_fraction), 3)
+        else:
+            return 0
+
+    @property
+    def average_life_time_asteroids(self) -> float:
+        sm = sum(life_time for life_time, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.ASTEROID)
+        ln = sum(1 for _, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.ASTEROID)
+        if ln > 0:
+            return round(sm / ln, 3)
+        else:
+            return 0
+
+    @property
+    def average_life_time_shots(self) -> float:
+        sm = sum(life_time for life_time, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.SHOT)
+        ln = sum(1 for _, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.SHOT)
+        if ln > 0:
+            return round(sm / ln, 3)
+        else:
+            return 0
+    
 
 class MetricsCollector:
 
@@ -59,30 +108,36 @@ class MetricsCollector:
 
     def report(self) -> Report:
         total_shots = 0
-        objects_life_time: dict[int, int | str] = {}
+        objects_life_time: dict[int, tuple[int, SpriteType]] = {}
         asteroids_destroyed = 0
         shots_hit = 0
-        survived = []
+        survived_asteroid = 0
+        survived_shots = 0
         for obj in self.objects_life.values():
             if obj.last_frame  != self.last_frame:
-                objects_life_time[obj.id] = obj.last_frame - obj.first_frame
-            else:
-                survived.append(obj.id)
+                objects_life_time[obj.id] = (obj.last_frame - obj.first_frame, obj.sprite_type)
             if obj.sprite_type is SpriteType.ASTEROID:
                 if obj.last_frame  != self.last_frame:
                     asteroids_destroyed += 1
+                else: 
+                    survived_asteroid += 1
             elif obj.sprite_type is SpriteType.SHOT:
                 total_shots += 1
                 if obj.last_frame  != self.last_frame:
                     shots_hit += 1
+                else:
+                    survived_shots += 1
+
         return Report(
             asteroid_area_fraction=self.asteroid_area_fraction,
             sprites_on_screen=self.sprites_on_screen,
             sprites_appearance_by_type=dict(self.sprites_appearance_by_type),
             asteroids_destroyed=asteroids_destroyed,
-            percent_shots_hit=shots_hit / max(1, total_shots),
+            shots_hit_fraction=shots_hit / max(1, total_shots),
             objects_life_time=objects_life_time,
-            survived=survived
+            survived_asteroid=survived_asteroid,
+            survived_shots=survived_shots,
+            objects_life=self.objects_life
         )
 
 
