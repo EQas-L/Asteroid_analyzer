@@ -78,7 +78,7 @@ class SnapshotReader:
                 timestamp=record["timestamp"],
                 elapsed_s=record["elapsed_s"],
                 frame=record["frame"],
-                screen=Size(record["screen_size"][0], record["screen_size"][1]),
+                screen=Size(width = record["screen_size"][0], height =record["screen_size"][1]),
                 sprites=tuple(sprites),
             )
         except KeyError as e:
