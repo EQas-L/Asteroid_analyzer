@@ -2,7 +2,7 @@ from collections import Counter
 from dataclasses import dataclass
 from math import pi
 
-from models import Snapshot, SpriteType
+from .models import Snapshot, SpriteType
 
 
 @dataclass(slots=True)

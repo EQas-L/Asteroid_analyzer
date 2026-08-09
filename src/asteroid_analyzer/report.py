@@ -1,5 +1,5 @@
-from metrics import Report
-from reader import ReadStats
+from .metrics import Report
+from .reader import ReadStats
 
 
 def render(read_stats: ReadStats, report: Report) -> str:

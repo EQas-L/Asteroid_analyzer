@@ -1,11 +1,13 @@
 import json
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-import errors
-from models import Size, Snapshot, Sprite, SpriteType, Vec2
+from .errors import *
+from .models import Size, Snapshot, Sprite, SpriteType, Vec2
 
+logger = logging.getLogger(__name__)
 
 def read_lines(path: Path) -> Iterator[tuple[str, int]]:
     """Непустые строки файла вместе с их номерами."""
@@ -36,7 +38,7 @@ class SnapshotReader:
         try:
             sprite_type = SpriteType(raw["type"])
         except ValueError:
-            raise errors.UnknownSpriteTypeError(lineno, raw.get("type")) from None
+            raise UnknownSpriteTypeError(lineno, raw.get("type")) from None
 
         if sprite_type is SpriteType.ASTEROID_FIELD:
             return None
@@ -54,11 +56,11 @@ class SnapshotReader:
         try:
             record = json.loads(line)
         except json.JSONDecodeError as e:
-            raise errors.MalformedLineError(lineno, str(e)) from e
+            raise MalformedLineError(lineno, str(e)) from e
 
         try:
             if record["v"] != self.supported_version:
-                raise errors.UnsupportedVersionError(
+                raise UnsupportedVersionError(
                     lineno, record["v"], self.supported_version
                 )
 
@@ -66,8 +68,8 @@ class SnapshotReader:
             for raw in record["updatable"]["sprites"]:
                 try:
                     sprite = self._parse_sprite(raw, lineno)
-                except errors.UnknownSpriteTypeError as e:
-                    print(f"предупреждение: {e}")
+                except UnknownSpriteTypeError as e:
+                    logger.warning("предупреждение: %s", e)
                     self.stats.unknown_sprite_types += 1
                     continue
                 if sprite is not None:
@@ -82,19 +84,19 @@ class SnapshotReader:
                 sprites=tuple(sprites),
             )
         except KeyError as e:
-            raise errors.IncompleteRecordError(lineno, e.args[0]) from e
+            raise IncompleteRecordError(lineno, e.args[0]) from e
 
     def __iter__(self) -> Iterator[Snapshot]:
         for line, lineno in read_lines(self.path):
             self.stats.lines_total += 1
             try:
                 snapshot = self._parse_snapshot(line, lineno)
-            except errors.MalformedLineError as e:
-                print(f"пропуск: {e}")
+            except MalformedLineError as e:
+                logger.warning("пропуск: %s", e)
                 self.stats.malformed_json += 1
                 continue
-            except errors.IncompleteRecordError as e:
-                print(f"пропуск: {e}")
+            except IncompleteRecordError as e:
+                logger.warning("пропуск: %s", e)
                 self.stats.incomplete_snapshots += 1
                 continue
             self.stats.snapshots_ok += 1
