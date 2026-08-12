@@ -34,16 +34,17 @@ def main() -> None:
         stream=sys.stderr,
     )
 
-    reader = SnapshotReader(args.log)
+    
     collector = MetricsCollector()
-    try:
-        for snapshot in reader:
-            collector.update(snapshot)
-    except FatalLogError as e:
-        print(f"Чтение прервано: {e}", file=sys.stderr)
-        sys.exit(1)
+    with SnapshotReader(args.log) as reader: 
+        try:
+            for snapshot in reader:
+                collector.update(snapshot)
+        except FatalLogError as e:
+            print(f"Чтение прервано: {e}", file=sys.stderr)
+            sys.exit(1)
 
-    print(render(reader.stats, collector.report()))
+        print(render(reader.stats, collector.report()))
 
 
 if __name__ == "__main__":
