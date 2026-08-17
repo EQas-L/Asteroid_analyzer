@@ -123,3 +123,12 @@ def test_recoverable_errors(
 
         assert len(snapshots) == expected_snapshots
         assert reader.stats == expected_stats
+
+def test_iteration_without_with_raises(tmp_path: Path) -> None:
+    log = tmp_path / "log.jsonl"
+    log.write_text(UNKNOWN_TYPE + "\n", encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        reader = SnapshotReader(log)
+        for _ in reader:
+            pass
+        

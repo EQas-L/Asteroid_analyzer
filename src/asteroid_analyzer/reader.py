@@ -42,7 +42,7 @@ class SnapshotReader:
         self.path = path
         self.supported_version = supported_version
         self.stats = ReadStats()
-        self._file: TextIO | None
+        self._file: TextIO | None = None
 
     def __enter__(self) -> "SnapshotReader":
         self._file = self.path.open()
