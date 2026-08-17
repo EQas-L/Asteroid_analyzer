@@ -9,8 +9,6 @@ from asteroid_analyzer.reader import SnapshotReader
 file = Path(__file__).parent.parent / "data/broken.jsonl"
 
 
-
-
 def test_main() -> None:
     collector = MetricsCollector()
     with pytest.raises(FatalLogError), SnapshotReader(file) as reader:
@@ -28,5 +26,3 @@ def test_main() -> None:
     assert rep.survived_shots == 0
     assert rep.shots_hit_fraction == 0.0
     assert rep.objects_life_time == {}
-
-

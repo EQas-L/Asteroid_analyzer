@@ -18,7 +18,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("log", type=Path, help="путь к файлу game_state.jsonl")
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="показывать предупреждения о пропущенных записях",
     )
@@ -34,9 +35,8 @@ def main() -> None:
         stream=sys.stderr,
     )
 
-    
     collector = MetricsCollector()
-    with SnapshotReader(args.log) as reader: 
+    with SnapshotReader(args.log) as reader:
         try:
             for snapshot in reader:
                 collector.update(snapshot)

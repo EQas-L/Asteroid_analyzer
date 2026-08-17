@@ -16,9 +16,9 @@ from .models import Size, Snapshot, Sprite, SpriteType, Vec2
 logger = logging.getLogger(__name__)
 
 
-
 class Vex:
     x = 1
+
 
 def read_lines(f: TextIO) -> Iterator[tuple[str, int]]:
     """Непустые строки файла вместе с их номерами."""
@@ -46,7 +46,7 @@ class SnapshotReader:
 
     def __enter__(self) -> "SnapshotReader":
         self._file = self.path.open()
-        return self                     
+        return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         if self._file is not None:
@@ -80,9 +80,7 @@ class SnapshotReader:
 
         try:
             if record["v"] != self.supported_version:
-                raise UnsupportedVersionError(
-                    lineno, record["v"], self.supported_version
-                )
+                raise UnsupportedVersionError(lineno, record["v"], self.supported_version)
 
             sprites: list[Sprite] = []
             for raw in record["updatable"]["sprites"]:
@@ -100,7 +98,7 @@ class SnapshotReader:
                 timestamp=record["timestamp"],
                 elapsed_s=record["elapsed_s"],
                 frame=record["frame"],
-                screen=Size(width = record["screen_size"][0], height =record["screen_size"][1]),
+                screen=Size(width=record["screen_size"][0], height=record["screen_size"][1]),
                 sprites=tuple(sprites),
             )
         except KeyError as e:

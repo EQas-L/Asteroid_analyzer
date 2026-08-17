@@ -9,12 +9,13 @@ class SpriteType(Enum):
     ASTEROID_FIELD = "AsteroidField"
 
 
-@dataclass(frozen = True, slots=True)
+@dataclass(frozen=True, slots=True)
 class Vec2:
     x: float
     y: float
 
-@dataclass(frozen = True, slots=True)
+
+@dataclass(frozen=True, slots=True)
 class Size:
     height: int
     width: int
@@ -23,7 +24,8 @@ class Size:
     def area(self) -> int:
         return self.width * self.height
 
-@dataclass(frozen = True, slots=True)
+
+@dataclass(frozen=True, slots=True)
 class Sprite:
     id: int
     type: SpriteType
@@ -32,7 +34,8 @@ class Sprite:
     radius: float
     rotation: float | None = None
 
-@dataclass(frozen = True, slots=True)
+
+@dataclass(frozen=True, slots=True)
 class Snapshot:
     v: int
     timestamp: str

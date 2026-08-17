@@ -12,7 +12,7 @@ def render(read_stats: ReadStats, report: Report) -> str:
 создано всего: {max(report.objects_life)}
 наблюдалось  : {len(report.objects_life)}
 объектов на экране (среднее, максимум): {report.average_sprites, report.max_sprites}
-доля площади астероидов (средняя, максимальная): { report.average_fraction, report.max_fraction}
+доля площади астероидов (средняя, максимальная): {report.average_fraction, report.max_fraction}
 разрушено астероидов: {report.asteroids_destroyed}
 точность стрельбы% (нижняя оценка): {report.shots_hit_fraction * 100:.0f} %
 время жизни астероидов: {report.average_life_time_asteroids}, живы в конце(не вошли в учет): {report.survived_asteroid}

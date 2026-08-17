@@ -1,5 +1,3 @@
-
-
 class LogError(Exception):
     pass
 
@@ -17,9 +15,8 @@ class UnsupportedVersionError(FatalLogError):
         self.line = line
         self.found = found
         self.supported = supported
-        super().__init__(
-            f"строка {line}: версия схемы {found!r}, поддерживается {supported}"
-        )
+        super().__init__(f"строка {line}: версия схемы {found!r}, поддерживается {supported}")
+
 
 class MalformedLineError(RecoverableLogError):
     def __init__(self, line: int, reason: str) -> None:
@@ -40,4 +37,3 @@ class UnknownSpriteTypeError(RecoverableLogError):
         self.line = line
         self.raw_type = raw_type
         super().__init__(f"строка {line}: неизвестный тип спрайта {raw_type!r}")
-

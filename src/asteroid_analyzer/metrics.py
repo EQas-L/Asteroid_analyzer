@@ -7,10 +7,11 @@ from .models import Snapshot, SpriteType
 
 @dataclass(slots=True)
 class ObjectLife:
-    id : int
+    id: int
     sprite_type: SpriteType
     first_frame: int
     last_frame: int
+
 
 @dataclass(frozen=True, slots=True)
 class Report:
@@ -19,7 +20,7 @@ class Report:
     sprites_appearance_by_type: dict[SpriteType, int]
     asteroids_destroyed: int
     shots_hit_fraction: float
-    objects_life_time: dict[int, tuple[int, SpriteType]] # id -> life time in frames
+    objects_life_time: dict[int, tuple[int, SpriteType]]  # id -> life time in frames
     survived_asteroid: int
     survived_shots: int
     objects_life: dict[int, ObjectLife]
@@ -54,8 +55,16 @@ class Report:
 
     @property
     def average_life_time_asteroids(self) -> float:
-        sm = sum(life_time for life_time, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.ASTEROID)
-        ln = sum(1 for _, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.ASTEROID)
+        sm = sum(
+            life_time
+            for life_time, sprite_type in self.objects_life_time.values()
+            if sprite_type is SpriteType.ASTEROID
+        )
+        ln = sum(
+            1
+            for _, sprite_type in self.objects_life_time.values()
+            if sprite_type is SpriteType.ASTEROID
+        )
         if ln > 0:
             return round(sm / ln, 3)
         else:
@@ -63,16 +72,23 @@ class Report:
 
     @property
     def average_life_time_shots(self) -> float:
-        sm = sum(life_time for life_time, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.SHOT)
-        ln = sum(1 for _, sprite_type in self.objects_life_time.values() if sprite_type is SpriteType.SHOT)
+        sm = sum(
+            life_time
+            for life_time, sprite_type in self.objects_life_time.values()
+            if sprite_type is SpriteType.SHOT
+        )
+        ln = sum(
+            1
+            for _, sprite_type in self.objects_life_time.values()
+            if sprite_type is SpriteType.SHOT
+        )
         if ln > 0:
             return round(sm / ln, 3)
         else:
             return 0
-    
+
 
 class MetricsCollector:
-
     def __init__(self) -> None:
         self.asteroid_area_fraction: list[float] = []
         self.sprites_on_screen: list[int] = []
@@ -88,17 +104,20 @@ class MetricsCollector:
         for sprite in snapshot.sprites:
             if sprite.id not in self.objects_life:
                 self.objects_life[sprite.id] = ObjectLife(
-                    id = sprite.id,
-                    sprite_type = sprite.type,
-                    first_frame = snapshot.frame,
-                    last_frame = snapshot.frame
+                    id=sprite.id,
+                    sprite_type=sprite.type,
+                    first_frame=snapshot.frame,
+                    last_frame=snapshot.frame,
                 )
             else:
                 self.objects_life[sprite.id].last_frame = snapshot.frame
 
-            if 0 <= sprite.position.y <= snapshot.screen.height and 0 <= sprite.position.x <= snapshot.screen.width:
+            if (
+                0 <= sprite.position.y <= snapshot.screen.height
+                and 0 <= sprite.position.x <= snapshot.screen.width
+            ):
                 if sprite.type is SpriteType.ASTEROID:
-                    area += sprite.radius ** 2 * pi
+                    area += sprite.radius**2 * pi
                 on_screen += 1
                 self.sprites_appearance_by_type.update([sprite.type])
 
@@ -114,16 +133,16 @@ class MetricsCollector:
         survived_asteroid = 0
         survived_shots = 0
         for obj in self.objects_life.values():
-            if obj.last_frame  != self.last_frame:
+            if obj.last_frame != self.last_frame:
                 objects_life_time[obj.id] = (obj.last_frame - obj.first_frame, obj.sprite_type)
             if obj.sprite_type is SpriteType.ASTEROID:
-                if obj.last_frame  != self.last_frame:
+                if obj.last_frame != self.last_frame:
                     asteroids_destroyed += 1
-                else: 
+                else:
                     survived_asteroid += 1
             elif obj.sprite_type is SpriteType.SHOT:
                 total_shots += 1
-                if obj.last_frame  != self.last_frame:
+                if obj.last_frame != self.last_frame:
                     shots_hit += 1
                 else:
                     survived_shots += 1
@@ -137,7 +156,5 @@ class MetricsCollector:
             objects_life_time=objects_life_time,
             survived_asteroid=survived_asteroid,
             survived_shots=survived_shots,
-            objects_life=self.objects_life
+            objects_life=self.objects_life,
         )
-
-
