@@ -16,7 +16,7 @@ class ObjectLife:
 class Report:
     asteroid_area_fraction: list[float]
     sprites_on_screen: list[int]
-    sprites_appearance_by_type: dict[str, int]
+    sprites_appearance_by_type: dict[SpriteType, int]
     asteroids_destroyed: int
     shots_hit_fraction: float
     objects_life_time: dict[int, tuple[int, SpriteType]] # id -> life time in frames
@@ -83,7 +83,7 @@ class MetricsCollector:
 
     def update(self, snapshot: Snapshot) -> None:
         self.last_frame = snapshot.frame
-        area = 0
+        area = 0.0
         on_screen = 0
         for sprite in snapshot.sprites:
             if sprite.id not in self.objects_life:

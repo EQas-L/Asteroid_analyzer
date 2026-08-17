@@ -3,8 +3,14 @@ import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, TextIO
 
-from .errors import *
+from .errors import (
+    IncompleteRecordError,
+    MalformedLineError,
+    UnknownSpriteTypeError,
+    UnsupportedVersionError,
+)
 from .models import Size, Snapshot, Sprite, SpriteType, Vec2
 
 logger = logging.getLogger(__name__)
@@ -14,13 +20,12 @@ logger = logging.getLogger(__name__)
 class Vex:
     x = 1
 
-def read_lines(file) -> Iterator[tuple[str, int]]:
+def read_lines(f: TextIO) -> Iterator[tuple[str, int]]:
     """Непустые строки файла вместе с их номерами."""
-    with file as f:
-        for lineno, line in enumerate(f, start=1):
-            line = line.strip()
-            if line:
-                yield line, lineno
+    for lineno, line in enumerate(f, start=1):
+        line = line.strip()
+        if line:
+            yield line, lineno
 
 
 @dataclass(slots=True)
@@ -37,16 +42,16 @@ class SnapshotReader:
         self.path = path
         self.supported_version = supported_version
         self.stats = ReadStats()
+        self._file: TextIO | None
 
     def __enter__(self) -> "SnapshotReader":
         self._file = self.path.open()
         return self                     
 
-    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         if self._file is not None:
             self._file.close()
             self._file = None
-        return False
 
     def _parse_sprite(self, raw: dict, lineno: int) -> Sprite | None:
         """Один спрайт. None — если тип неизвестен или не нужен."""
@@ -102,7 +107,10 @@ class SnapshotReader:
             raise IncompleteRecordError(lineno, e.args[0]) from e
 
     def __iter__(self) -> Iterator[Snapshot]:
-        for line, lineno in read_lines(self._file):
+        f = self._file
+        if f is None:
+            raise RuntimeError("...")
+        for line, lineno in read_lines(f):
             self.stats.lines_total += 1
             try:
                 snapshot = self._parse_snapshot(line, lineno)
